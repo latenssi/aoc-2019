@@ -1,8 +1,7 @@
 use std::fs;
 
 fn main() {
-    let input_str =
-        fs::read_to_string("module_masses.txt").expect("Something went wrong reading the file");
+    let input_str = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
 
     let module_masses: Vec<f64> = input_str
         .lines()

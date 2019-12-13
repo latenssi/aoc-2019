@@ -1,8 +1,7 @@
 use std::fs;
 
 fn main() {
-    let input_str =
-        fs::read_to_string("program.txt").expect("Something went wrong reading the file");
+    let input_str = fs::read_to_string("input.txt").expect("Something went wrong reading the file");
 
     let program: Vec<u64> = input_str
         .split(",")
