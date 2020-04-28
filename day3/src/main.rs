@@ -57,22 +57,27 @@ impl Segment {
         }
     }
 
-    fn contains_point(&self, p: Point) -> bool {
-        let copy = self.order_points();
+    fn contains(&self, p: Point) -> bool {
+        let s = self.order_points();
 
-        if p.x == copy.p1.x || p.x == copy.p2.x {
+        if p.x == s.p1.x || p.x == s.p2.x {
             // X-axis matches, check Y
-            if copy.p1.y <= p.y && p.y <= copy.p2.y {
+            if s.p1.y <= p.y && p.y <= s.p2.y {
                 return true;
             }
-        } else if p.y == copy.p1.y || p.y == copy.p2.y {
+        } else if p.y == s.p1.y || p.y == s.p2.y {
             // Y-axis matches, check X
-            if copy.p1.x <= p.x && p.x <= copy.p2.x {
+            if s.p1.x <= p.x && p.x <= s.p2.x {
                 return true;
             }
         }
 
         false
+    }
+
+    fn length(&self) -> i32 {
+        let s = self.order_points();
+        max(s.p2.x - s.p1.x, s.p2.y - s.p1.y)
     }
 }
 
@@ -81,49 +86,113 @@ struct Path {
     segments: Vec<Segment>,
 }
 
+impl Path {
+    fn steps_to_reach(&self, point: Point) -> i32 {
+        let mut steps = 0;
+        for s in &self.segments {
+            if s.contains(point) {
+                let t_s = Segment {
+                    p1: s.p1,
+                    p2: point,
+                };
+                steps += t_s.length();
+                break;
+            } else {
+                steps += s.length();
+            }
+        }
+        steps
+    }
+}
+
 fn main() {
-    let d = run("input.txt");
+    let d = part1("input.txt");
 
     if d > 0 {
         println!("Distance: {:?}", d);
     } else {
         println!("Unable to find crossing")
     }
+
+    let steps = part2("input.txt");
+
+    if steps > 0 {
+        println!("Steps: {:?}", steps);
+    } else {
+        println!("Unable to find least steps")
+    }
 }
 
-fn run(input_file: &str) -> i32 {
+fn part1(input_file: &str) -> i32 {
     let input_str = fs::read_to_string(input_file).expect("Something went wrong reading the file");
     let paths: Vec<&str> = input_str.lines().collect();
 
     let origo = Point { x: 0, y: 0 };
 
-    let path1 = cvt_points2path(cvt_str2points(origo, paths[0]));
-    let path2 = cvt_points2path(cvt_str2points(origo, paths[1]));
+    let p1 = cvt_points2path(cvt_str2points(origo, paths[0]));
+    let p2 = cvt_points2path(cvt_str2points(origo, paths[1]));
 
-    if let Some(p) = search(origo, &path1, &path2) {
-        return origo.distance(p);
+    if let Some(d) = search_closest(origo, &p1, &p2) {
+        return d;
     }
 
     -1
 }
 
-fn search(origo: Point, path1: &Path, path2: &Path) -> Option<Point> {
-    let mut closest: Option<Point> = None;
-    let mut s_d = -1;
+fn part2(input_file: &str) -> i32 {
+    let input_str = fs::read_to_string(input_file).expect("Something went wrong reading the file");
+    let paths: Vec<&str> = input_str.lines().collect();
 
-    for s1 in &path1.segments {
-        for s2 in &path2.segments {
+    let origo = Point { x: 0, y: 0 };
+
+    let p1 = cvt_points2path(cvt_str2points(origo, paths[0]));
+    let p2 = cvt_points2path(cvt_str2points(origo, paths[1]));
+
+    if let Some(s) = search_least_steps(&p1, &p2) {
+        return s;
+    }
+
+    -1
+}
+
+fn search_closest(origo: Point, p1: &Path, p2: &Path) -> Option<i32> {
+    let mut d: Vec<i32> = intersections(p1, p2)
+        .into_iter()
+        .map(|i| i.distance(origo))
+        .collect();
+
+    d.sort();
+
+    match d.len() {
+        len if len >= 2 => Some(d[1]),
+        _ => None,
+    }
+}
+
+fn search_least_steps(p1: &Path, p2: &Path) -> Option<i32> {
+    let mut d: Vec<i32> = intersections(p1, p2)
+        .into_iter()
+        .map(|i| p1.steps_to_reach(i) + p2.steps_to_reach(i))
+        .collect();
+
+    d.sort();
+
+    match d.len() {
+        len if len >= 2 => Some(d[1]),
+        _ => None,
+    }
+}
+
+fn intersections(p1: &Path, p2: &Path) -> Vec<Point> {
+    let mut v: Vec<Point> = Vec::new();
+    for s1 in &p1.segments {
+        for s2 in &p2.segments {
             if let Some(p) = intersection(s1, s2) {
-                let d = p.distance(origo);
-                if p != origo && s_d < 0 || d < s_d {
-                    s_d = d;
-                    closest = Some(p);
-                }
+                v.push(p)
             }
         }
     }
-
-    closest
+    v
 }
 
 fn intersection(s1: &Segment, s2: &Segment) -> Option<Point> {
@@ -145,7 +214,7 @@ fn intersection(s1: &Segment, s2: &Segment) -> Option<Point> {
 
     let p = bot_left + diff;
 
-    if s1.contains_point(p) && s2.contains_point(p) {
+    if s1.contains(p) && s2.contains(p) {
         return Some(p);
     }
 
@@ -200,18 +269,16 @@ fn cvt_points2path(points: Vec<Point>) -> Path {
     Path { segments }
 }
 
-
 #[test]
-fn test1_txt() {
-    assert_eq!(run("test1.txt"), 159);
+fn test_part1() {
+    assert_eq!(part1("test1.txt"), 159);
+    assert_eq!(part1("test2.txt"), 135);
+    assert_eq!(part1("test3.txt"), 8);
 }
 
 #[test]
-fn test2_txt() {
-    assert_eq!(run("test2.txt"), 135);
-}
-
-#[test]
-fn test3_txt() {
-    assert_eq!(run("test3.txt"), 10);
+fn test_part2() {
+    assert_eq!(part2("test1.txt"), 610);
+    assert_eq!(part2("test2.txt"), 410);
+    assert_eq!(part2("test3.txt"), 20);
 }
