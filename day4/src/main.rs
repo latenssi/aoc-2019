@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 fn main() {
     let input_start = 353_096;
     let input_end = 843_212;
@@ -13,42 +15,35 @@ fn main() {
 }
 
 fn crack(start: u32, end: u32, limit_grp_len: bool) -> u32 {
-    (start..end + 1)
-        .map(|password| {
-            if validate(password, start, end, limit_grp_len) {
-                1
-            } else {
-                0
-            }
-        })
-        .sum()
+    let mut sum = 0;
+    for password in start..=end {
+        if validate(password, start, end, limit_grp_len) {
+            sum += 1
+        }
+    }
+    sum
 }
 
 fn validate(password: u32, start: u32, end: u32, limit_grp_len: bool) -> bool {
-    let pass_str = password.to_string();
+    // Convert into String and then to Vec<u8>
+    let pass_vec: Vec<u8> = format!("{}", password).into_bytes();
 
-    let v_length = pass_str.len() == 6;
+    let v_length = pass_vec.len() == 6;
     let v_range = start <= password && password <= end;
+
+    if !v_length || !v_range {
+        return false;
+    }
+
     let mut v_num_incr = false;
     let mut v_two_adj = false;
     let mut v_grp_len = false;
 
-    let mut prev_grp_len = 1;
+    let mut seen_only_two_adj = false;
     let mut grp_len = 1;
 
-    for (i, c) in pass_str.chars().enumerate() {
-        if i == 0 {
-            // Skip the first digit (we need a pair of digits to compare)
-            continue;
-        }
-
-        // Last digit
-        let l_d = (pass_str.chars().nth(i - 1).unwrap()).to_digit(10).unwrap();
-
-        // Current digit
-        let c_d = c.to_digit(10).unwrap();
-
-        v_num_incr = l_d <= c_d;
+    for (a, b) in pass_vec.into_iter().tuple_windows() {
+        v_num_incr = a <= b;
 
         if !v_num_incr {
             // Current digit is decreasing compared to last
@@ -56,20 +51,19 @@ fn validate(password: u32, start: u32, end: u32, limit_grp_len: bool) -> bool {
             break;
         }
 
-        if l_d == c_d {
+        v_two_adj = v_two_adj || a == b;
+
+        if a == b {
             // Adjacent digits match => increment group length counter
             grp_len += 1;
         } else {
             // Adjacent digits don't match => reset group length counter
-            if grp_len == 2 {
-                // If a group was 2 digits long, record it
-                prev_grp_len = grp_len;
-            }
+            // If a group was 2 digits long, record it
+            seen_only_two_adj = seen_only_two_adj || grp_len == 2;
             grp_len = 1;
         }
 
-        v_two_adj = grp_len == 2 || v_two_adj;
-        v_grp_len = grp_len == 2 || prev_grp_len == 2;
+        v_grp_len = grp_len == 2 || seen_only_two_adj;
     }
 
     v_length && v_range && v_num_incr && v_two_adj && (!limit_grp_len || v_grp_len)
@@ -107,5 +101,5 @@ fn test_part1() {
 #[test]
 fn test_part2() {
     assert_eq!(crack(112_333, 112_334, true), 2);
-    assert!(crack(353_096, 843_212, true) > 274);
+    assert_eq!(crack(353_096, 843_212, true), 358);
 }
