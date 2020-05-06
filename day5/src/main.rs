@@ -71,6 +71,10 @@ impl Machine {
         self.init(&program);
     }
 
+    fn jump_flag_set(&self) -> bool{
+        self.jump_flag
+    }
+
     fn set_jump_flag(&mut self) {
         self.jump_flag = true;
     }
@@ -101,7 +105,7 @@ impl Machine {
             match instruction.operation {
                 OPERATION::HALT => break,
                 _ => {
-                    if self.jump_flag {
+                    if self.jump_flag_set() {
                         self.clear_jump_flag();
                     }
                     else {
