@@ -26,7 +26,6 @@ struct Machine {
     memory: Vec<isize>,
     op_codes: HashMap<isize, (OPERATION, usize)>,
     instruction_pointer: usize,
-    instructions: Vec<Instruction>,
     input_stack: Vec<isize>,
     jump_flag: bool,
 }
@@ -49,7 +48,6 @@ impl Default for Machine {
             memory: Vec::<isize>::new(),
             op_codes,
             instruction_pointer: 0,
-            instructions: Vec::<Instruction>::new(),
             input_stack: Vec::<isize>::new(),
             jump_flag: false
         }
@@ -60,7 +58,6 @@ impl Machine {
     fn init(&mut self, program: &[isize]) {
         self.memory = program.to_vec();
         self.instruction_pointer = 0;
-        self.instructions = Vec::<Instruction>::new();
     }
 
     fn load_program(&mut self, path: &str) {
@@ -112,9 +109,6 @@ impl Machine {
                     }
                 }
             }
-
-            // To have a history of instructions, not yet sure if needed
-            self.instructions.push(instruction);
         }
 
         final_output
