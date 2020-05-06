@@ -28,6 +28,7 @@ struct Machine {
     instruction_pointer: usize,
     instructions: Vec<Instruction>,
     input_stack: Vec<isize>,
+    jump_flag: bool,
 }
 
 impl Default for Machine {
@@ -38,8 +39,8 @@ impl Default for Machine {
         op_codes.insert(2, (OPERATION::MUL, 3));
         op_codes.insert(3, (OPERATION::IN, 1));
         op_codes.insert(4, (OPERATION::OUT, 1));
-        op_codes.insert(5, (OPERATION::JIT, 3));
-        op_codes.insert(6, (OPERATION::JIF, 3));
+        op_codes.insert(5, (OPERATION::JIT, 2));
+        op_codes.insert(6, (OPERATION::JIF, 2));
         op_codes.insert(7, (OPERATION::LT, 3));
         op_codes.insert(8, (OPERATION::EQ, 3));
         op_codes.insert(99, (OPERATION::HALT, 0));
@@ -50,6 +51,7 @@ impl Default for Machine {
             instruction_pointer: 0,
             instructions: Vec::<Instruction>::new(),
             input_stack: Vec::<isize>::new(),
+            jump_flag: false
         }
     }
 }
@@ -72,6 +74,14 @@ impl Machine {
         self.init(&program);
     }
 
+    fn set_jump_flag(&mut self) {
+        self.jump_flag = true;
+    }
+
+    fn clear_jump_flag(&mut self) {
+        self.jump_flag = false;
+    }
+
     fn run(&mut self) -> Option<isize> {
         if self.memory.is_empty() {
             panic!("No program loaded");
@@ -84,7 +94,7 @@ impl Machine {
                 panic!("Program did not halt")
             }
 
-            let instruction = self.parse_next_instruction(self.instruction_pointer);
+            let instruction = self.parse_instruction(self.instruction_pointer);
 
             if let Some(output) = self.run_instruction(&instruction) {
                 println!("{:?}", output);
@@ -94,16 +104,23 @@ impl Machine {
             match instruction.operation {
                 OPERATION::HALT => break,
                 _ => {
-                    self.instruction_pointer += instruction.args.len() + 1;
-                    self.instructions.push(instruction);
+                    if self.jump_flag {
+                        self.clear_jump_flag();
+                    }
+                    else {
+                        self.instruction_pointer += instruction.args.len() + 1;
+                    }
                 }
             }
+
+            // To have a history of instructions, not yet sure if needed
+            self.instructions.push(instruction);
         }
 
         final_output
     }
 
-    fn parse_next_instruction(&mut self, offset: usize) -> Instruction {
+    fn parse_instruction(&mut self, offset: usize) -> Instruction {
         let op_code = self.memory[offset] % 100;
         let modes = self.memory[offset] / 100;
 
@@ -142,10 +159,30 @@ impl Machine {
                 None
             }
             OPERATION::OUT => Some(self.memory[instruction.args[0]]),
-            OPERATION::JIT => panic!("Not implemented"),
-            OPERATION::JIF => panic!("Not implemented"),
-            OPERATION::LT => panic!("Not implemented"),
-            OPERATION::EQ => panic!("Not implemented"),
+            OPERATION::JIT => {
+                if self.memory[instruction.args[0]] != 0 {
+                    self.instruction_pointer = self.memory[instruction.args[1]] as usize;
+                    self.set_jump_flag();
+                }
+                None
+            }
+            OPERATION::JIF => {
+                if self.memory[instruction.args[0]] == 0 {
+                    self.instruction_pointer = self.memory[instruction.args[1]] as usize;
+                    self.set_jump_flag();
+                }
+                None
+            }
+            OPERATION::LT => {
+                self.memory[instruction.args[2]] =
+                    (self.memory[instruction.args[0]] < self.memory[instruction.args[1]]) as isize;
+                None
+            }
+            OPERATION::EQ => {
+                self.memory[instruction.args[2]] =
+                    (self.memory[instruction.args[0]] == self.memory[instruction.args[1]]) as isize;
+                None
+            }
         }
     }
 
@@ -186,7 +223,7 @@ fn test_day2_puzzle1() {
 fn test_basic_io() {
     let mut machine = Machine::default();
     machine.input_stack.push(1337);
-    machine.load_program("test2.txt");
+    machine.init(&[3,0,4,0,99]);
     let output = machine.run();
 
     assert_eq!(output, Some(1337));
@@ -209,5 +246,112 @@ fn test_day5_puzzle2() {
     machine.input_stack.push(5);
     let output = machine.run();
 
-    assert_eq!(output, Some(9_938_601));
+    assert_eq!(output, Some(4_283_952));
+}
+
+
+#[test]
+fn test_day5_comparison() {
+    let mut m = Machine::default();
+
+    let p1 = [3,9,8,9,10,9,4,9,99,-1,8];
+    let p2 = [3,9,7,9,10,9,4,9,99,-1,8];
+    let p3 = [3,3,1108,-1,8,3,4,3,99];
+    let p4 = [3,3,1107,-1,8,3,4,3,99];
+
+    // Equal to 8, position mode
+
+    m.init(&p1);
+    m.input_stack.push(8);
+    assert_eq!(m.run(), Some(1));
+
+    m.init(&p1);
+    m.input_stack.push(1337);
+    assert_eq!(m.run(), Some(0));
+
+    // Less than 8, position  mode
+
+    m.init(&p2);
+    m.input_stack.push(7);
+    assert_eq!(m.run(), Some(1));
+
+    m.init(&p2);
+    m.input_stack.push(9);
+    assert_eq!(m.run(), Some(0));
+
+    // Equal to 8, immediate mode
+
+    m.init(&p3);
+    m.input_stack.push(8);
+    assert_eq!(m.run(), Some(1));
+
+    m.init(&p3);
+    m.input_stack.push(1337);
+    assert_eq!(m.run(), Some(0));
+
+    // Less than 8, immediate mode
+
+    m.init(&p4);
+    m.input_stack.push(7);
+    assert_eq!(m.run(), Some(1));
+
+    m.init(&p4);
+    m.input_stack.push(9);
+    assert_eq!(m.run(), Some(0));
+}
+
+
+#[test]
+fn test_day5_jump() {
+    let mut m = Machine::default();
+
+    let p1 = [3,12,6,12,15,1,13,14,13,4,13,99,-1,0,1,9];
+    let p2 = [3,3,1105,-1,9,1101,0,0,12,4,12,99,1];
+
+    // Position mode
+
+    m.init(&p1);
+    m.input_stack.push(0);
+    assert_eq!(m.run(), Some(0));
+
+    m.init(&p1);
+    m.input_stack.push(1337);
+    assert_eq!(m.run(), Some(1));
+
+    // Immediate mode
+
+    m.init(&p2);
+    m.input_stack.push(0);
+    assert_eq!(m.run(), Some(0));
+
+    m.init(&p2);
+    m.input_stack.push(1337);
+    assert_eq!(m.run(), Some(1));
+}
+
+
+#[test]
+fn test_day5_larger_example() {
+    let mut m = Machine::default();
+
+    let p = [3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+    1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+    999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99];
+
+    // The above example program uses an input instruction to ask for a single number. The program will then output 999 if the input value is below 8, output 1000 if the input value is equal to 8, or output 1001 if the input value is greater than 8
+
+    // Below 8
+    m.init(&p);
+    m.input_stack.push(7);
+    assert_eq!(m.run(), Some(999));
+
+    // Equal to 8
+    m.init(&p);
+    m.input_stack.push(8);
+    assert_eq!(m.run(), Some(1000));
+
+    // Greater than 8
+    m.init(&p);
+    m.input_stack.push(9);
+    assert_eq!(m.run(), Some(1001));
 }
