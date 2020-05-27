@@ -8,12 +8,13 @@ struct System {
 #[derive(Debug)]
 struct Orbiter {
     key: String,
-    orbits: String,
+    orbiting_key: String,
 }
 
 impl System {
-    fn add_orbiter(&mut self, key: String, orbits: String) {
-        self.orbiters.push(Orbiter { key, orbits });
+    fn add_orbiter(&mut self, key: String, orbiting_key: String) {
+        let new_orbiter = Orbiter { key, orbiting_key };
+        self.orbiters.push(new_orbiter);
     }
 
     fn parse_orbits(&mut self, input: &[String]) {
@@ -31,7 +32,7 @@ impl System {
         let mut len = 0;
         let mut next = key;
         while let Some(orbiter) = self.orbiters.iter().find(|o| o.key == next) {
-            next = orbiter.orbits.to_owned();
+            next = orbiter.orbiting_key.to_owned();
             len += 1;
         }
         len
@@ -68,7 +69,9 @@ fn part_1_example() {
 
     let mut system = System { orbiters: vec![] };
 
-    system.parse_orbits(&ex);
+    {
+        system.parse_orbits(&ex);
+    }
 
     assert_eq!(system.path_len("D".to_string()), 3);
     assert_eq!(system.path_len("L".to_string()), 7);
