@@ -34,13 +34,13 @@ impl System {
     }
 
     pub fn depth(&self, key: String) -> i32 {
-        let mut len = 0;
+        let mut depth = 0;
         let mut next = key;
         while let Some(orbiter) = self.orbiters.iter().find(|o| o.key == next) {
-            len += 1;
+            depth += 1;
             next = orbiter.orbiting_key.to_owned();
         }
-        len
+        depth
     }
 
     pub fn total_orbits(&self) -> i32 {

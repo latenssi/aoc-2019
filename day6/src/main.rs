@@ -13,7 +13,7 @@ fn main() {
     let mut system1 = lib_bruteforce::System::new();
     system1.parse_orbits(&input);
     println!("Old way");
-    println!("Answer: {}", &system1.total_orbits());
+    println!("Answer part 1: {}", &system1.total_orbits());
     println!("Duration: {}ms", t0.elapsed().as_millis());
 
     println!();
@@ -22,6 +22,10 @@ fn main() {
     let mut system2 = lib_hashmap::System::new();
     system2.parse_orbits(&input);
     println!("New way");
-    println!("Answer: {}", &system2.total_orbits());
+    println!("Answer part 1: {}", &system2.total_orbits());
+    println!(
+        "Answer part 2: {}",
+        &system2.minimun_orbital_transfers("YOU", "SAN")
+    );
     println!("Duration: {}ms", t0.elapsed().as_millis());
 }
