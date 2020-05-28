@@ -12,40 +12,40 @@ fn main() {
 
     // Way 1
 
-    // let t0 = Instant::now();
+    // let t2 = Instant::now();
     // let mut system1 = lib_bruteforce::System::new();
     // system1.parse_orbits(&input);
     // println!("Way 1");
     // println!("Answer part 1: {}", &system1.total_orbits());
-    // println!("Duration: {}ms", t0.elapsed().as_millis());
+    // println!("Duration: {:?}", t2.elapsed());
 
     // println!();
 
     // Way 2
 
-    let mut system = lib_hashmap::System::new();
-    println!("Way 2");
+    // let mut system = lib_hashmap::System::new();
+    // println!("Way 2");
 
-    let t1 = Instant::now();
+    // let t1 = Instant::now();
 
-    let t0 = Instant::now();
-    system.parse_orbits(&input);
-    println!("Duration: {}ms", t0.elapsed().as_millis());
+    // let t2 = Instant::now();
+    // system.parse_orbits(&input);
+    // println!("Duration: {:?}", t2.elapsed());
 
-    let t0 = Instant::now();
-    println!("Answer part 1: {}", &system.total_orbits());
-    println!("Duration: {}ms", t0.elapsed().as_millis());
+    // let t2 = Instant::now();
+    // println!("Answer part 1: {}", &system.total_orbits());
+    // println!("Duration: {:?}", t2.elapsed());
 
-    let t0 = Instant::now();
-    println!(
-        "Answer part 2: {:?}",
-        &system.minimun_orbital_transfers("YOU", "SAN").unwrap()
-    );
-    println!("Duration: {}ms", t0.elapsed().as_millis());
+    // let t2 = Instant::now();
+    // println!(
+    //     "Answer part 2: {:?}",
+    //     &system.minimun_orbital_transfers("YOU", "SAN").unwrap()
+    // );
+    // println!("Duration: {:?}", t2.elapsed());
 
-    println!("Total duration: {}ms", t1.elapsed().as_millis());
+    // println!("Total duration: {:?}", t1.elapsed());
 
-    println!();
+    // println!();
 
     // Way 3
 
@@ -54,20 +54,23 @@ fn main() {
 
     let t1 = Instant::now();
 
-    let t0 = Instant::now();
+    let t2 = Instant::now();
     system3.parse_orbits(&input);
-    println!("Duration: {}ms", t0.elapsed().as_millis());
+    println!("Graph build duration: {:?}", t2.elapsed());
 
-    let t0 = Instant::now();
-    println!("Answer part 1: {}", &system3.total_orbits());
-    println!("Duration: {}ms", t0.elapsed().as_millis());
-
-    let t0 = Instant::now();
+    let t2 = Instant::now();
     println!(
-        "Answer part 2: {:?}",
-        &system3.minimun_orbital_transfers("YOU", "SAN").unwrap()
+        "Answer part 1: {}, duration {:?}",
+        &system3.total_orbits(),
+        t2.elapsed()
     );
-    println!("Duration: {}ms", t0.elapsed().as_millis());
 
-    println!("Total duration: {}ms", t1.elapsed().as_millis());
+    let t2 = Instant::now();
+    println!(
+        "Answer part 2: {:?}, duration {:?}",
+        &system3.minimun_orbital_transfers("YOU", "SAN").unwrap(),
+        t2.elapsed()
+    );
+
+    println!("Total duration: {:?}", t1.elapsed());
 }

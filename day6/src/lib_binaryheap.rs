@@ -43,7 +43,7 @@ impl System {
     }
 
     pub fn depth(&self, o: &str) -> Result<usize, &'static str> {
-        match self.shortest_path(o, "COM") {
+        match self.shortest_path(o, "COM", true) {
             Some(d) => Ok(d),
             None => Err("Unable to find path"),
         }
@@ -56,13 +56,13 @@ impl System {
     ) -> Result<usize, &'static str> {
         // Calculating orbital transfers so decrease by 2 since the current
         // orbits are taken into account when calculating paths
-        match self.shortest_path(source, target) {
+        match self.shortest_path(source, target, false) {
             Some(d) => Ok(d - 2),
             None => Err("Unable to find path"),
         }
     }
 
-    fn shortest_path(&self, source: &str, target: &str) -> Option<usize> {
+    fn shortest_path(&self, source: &str, target: &str, use_shortcut: bool) -> Option<usize> {
         if !self.node_ids.contains_key(source) || !self.node_ids.contains_key(target) {
             return None;
         }
@@ -90,6 +90,22 @@ impl System {
                 continue;
             }
 
+            // TODO: DRY
+            if use_shortcut {
+                let next = SearchState {
+                    length: length + 1,
+                    id: self.adj[&id][0],
+                };
+
+                if next.length < dist[next.id] {
+                    heap.push(next);
+                    dist[next.id] = next.length;
+                }
+
+                continue;
+            }
+
+            // TODO: DRY
             for n in &self.adj[&id] {
                 let next = SearchState {
                     length: length + 1,
