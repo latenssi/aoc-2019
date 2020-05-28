@@ -24,8 +24,8 @@ fn main() {
     println!("New way");
     println!("Answer part 1: {}", &system2.total_orbits());
     println!(
-        "Answer part 2: {}",
-        &system2.minimun_orbital_transfers("YOU", "SAN")
+        "Answer part 2: {:?}",
+        &system2.minimun_orbital_transfers("YOU", "SAN").unwrap()
     );
     println!("Duration: {}ms", t0.elapsed().as_millis());
 }

@@ -29,13 +29,24 @@ impl System {
         self.orbits.keys().map(|o| self.depth(o)).sum()
     }
 
-    pub fn minimun_orbital_transfers(&self, source: &str, target: &str) -> u32 {
+    pub fn minimun_orbital_transfers(
+        &self,
+        source: &str,
+        target: &str,
+    ) -> Result<u32, &'static str> {
         // Calculating orbital transfers so decrease by 2 since the current
         // orbits are taken into account when calculating paths
-        self.shortest_path(source, target) - 2
+        match self.shortest_path(source, target) {
+            Ok(d) => Ok(d - 2),
+            Err(e) => Err(e),
+        }
     }
 
-    fn shortest_path(&self, source: &str, target: &str) -> u32 {
+    fn shortest_path(&self, source: &str, target: &str) -> Result<u32, &'static str> {
+        if !self.orbits.contains_key(source) || !self.orbits.contains_key(target) {
+            return Err("'source' or 'target' vertex not in self.orbits");
+        }
+
         let mut q: HashSet<&str> = HashSet::new();
         let mut dist: HashMap<&str, u32> = HashMap::new();
 
@@ -83,7 +94,10 @@ impl System {
             }
         }
 
-        *dist.get(target).unwrap()
+        match dist.get(target) {
+            Some(d) if *d < u32::MAX => Ok(*d),
+            _ => Err("Unable to find path"),
+        }
     }
 
     fn add_orbiter(&mut self, orbiter: &str, orbiting: &str) {
@@ -146,5 +160,5 @@ fn part_2_example() {
 
     system.parse_orbits(&ex);
 
-    assert_eq!(system.minimun_orbital_transfers("YOU", "SAN"), 4);
+    assert_eq!(system.minimun_orbital_transfers("YOU", "SAN").unwrap(), 4);
 }
