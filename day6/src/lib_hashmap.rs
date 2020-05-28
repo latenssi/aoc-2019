@@ -38,7 +38,6 @@ impl System {
     fn shortest_path(&self, source: &str, target: &str) -> u32 {
         let mut q: HashSet<&str> = HashSet::new();
         let mut dist: HashMap<&str, u32> = HashMap::new();
-        let mut prev: HashMap<&str, &str> = HashMap::new();
 
         // Init
         for n in self.orbits.keys() {
@@ -76,7 +75,6 @@ impl System {
                     let alt = *dist.get(u).unwrap() + 1; // All edges are equal
                     if alt < *dist.get(v).unwrap() {
                         dist.insert(*v, alt);
-                        prev.insert(*v, u);
                     }
                 }
             } else {
