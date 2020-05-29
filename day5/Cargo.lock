@@ -9,6 +9,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "day5"
 version = "0.1.0"
 dependencies = [
+ "intcode 0.1.0",
+]
+
+[[package]]
+name = "intcode"
+version = "0.1.0"
+dependencies = [
  "bit-vec 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
