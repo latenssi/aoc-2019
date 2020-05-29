@@ -23,6 +23,8 @@ struct Instruction {
 struct Register {
     halt_flag: bool,
     jump_flag: bool,
+    carry_flag: bool,
+    sign_flag: bool,
     instruction_pointer: usize,
     input_stack: VecDeque<isize>,
 }
@@ -49,6 +51,8 @@ impl Default for Register {
         Register {
             halt_flag: false,
             jump_flag: false,
+            carry_flag: false,
+            sign_flag: false,
             instruction_pointer: 0,
             input_stack: VecDeque::<isize>::new(),
         }
@@ -78,6 +82,22 @@ impl Register {
 
     fn clear_jump_flag(&mut self) {
         self.jump_flag = false;
+    }
+
+    fn set_carry_flag(&mut self) {
+        self.carry_flag = true;
+    }
+
+    fn clear_carry_flag(&mut self) {
+        self.carry_flag = false;
+    }
+
+    fn set_sign_flag(&mut self) {
+        self.sign_flag = true;
+    }
+
+    fn clear_sign_flag(&mut self) {
+        self.sign_flag = false;
     }
 
     fn incr_instruction_pointer(&mut self, incr: usize) {
@@ -194,13 +214,33 @@ impl Default for Machine {
     fn default() -> Machine {
         let mut instruction_set = InstructionSet::default();
 
-        instruction_set.insert(1, Operation::ADD, 3, |m, _r, i| {
-            m.set(i.args[2], m.get(i.args[0]) + m.get(i.args[1]));
+        instruction_set.insert(1, Operation::ADD, 3, |m, r, i| {
+            let arg1 = m.get(i.args[0]);
+            let arg2 = m.get(i.args[1]);
+
+            let (res, overflow) = arg1.overflowing_add(arg2);
+            if overflow {
+                // 'res' is the wrapped around value
+                println!("Wrapped: {}", res);
+                r.sign_flag = res < 0;
+                r.set_carry_flag();
+            }
+            m.set(i.args[2], res);
             None
         });
 
-        instruction_set.insert(2, Operation::MUL, 3, |m, _r, i| {
-            m.set(i.args[2], m.get(i.args[0]) * m.get(i.args[1]));
+        instruction_set.insert(2, Operation::MUL, 3, |m, r, i| {
+            let arg1 = m.get(i.args[0]);
+            let arg2 = m.get(i.args[1]);
+
+            let (res, overflow) = arg1.overflowing_mul(arg2);
+            if overflow {
+                // 'res' is the wrapped around value
+                println!("Wrapped: {}", res);
+                r.sign_flag = res < 0;
+                r.set_carry_flag();
+            }
+            m.set(i.args[2], res);
             None
         });
 
@@ -209,7 +249,10 @@ impl Default for Machine {
             None
         });
 
-        instruction_set.insert(4, Operation::OUT, 1, |m, _r, i| Some(m.get(i.args[0])));
+        instruction_set.insert(4, Operation::OUT, 1, |m, r, i| {
+            if r.carry_flag {}
+            Some(m.get(i.args[0]))
+        });
 
         instruction_set.insert(5, Operation::JIT, 2, |m, r, i| {
             if m.get(i.args[0]) != 0 {
