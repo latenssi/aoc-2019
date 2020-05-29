@@ -1,11 +1,11 @@
 use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
 
 #[derive(Debug)]
 pub struct System {
     nodes: HashSet<String>,
     node_ids: HashMap<String, usize>,
-    adj: HashMap<usize, Vec<usize>>,
+    adj: HashMap<usize, VecDeque<usize>>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -26,11 +26,7 @@ impl System {
     pub fn parse_orbits(&mut self, input: &[&str]) {
         for line in input {
             let mut s = line.split(')');
-
-            let p1 = s.next().unwrap();
-            let p2 = s.next().unwrap();
-
-            self.add_orbiter(p2, p1);
+            self.add_orbiter(s.next().unwrap(), s.next().unwrap());
         }
     }
 
@@ -62,7 +58,7 @@ impl System {
         }
     }
 
-    fn shortest_path(&self, source: &str, target: &str, use_shortcut: bool) -> Option<usize> {
+    fn shortest_path(&self, source: &str, target: &str, only_first_adj: bool) -> Option<usize> {
         if !self.node_ids.contains_key(source) || !self.node_ids.contains_key(target) {
             return None;
         }
@@ -90,26 +86,13 @@ impl System {
                 continue;
             }
 
-            // TODO: DRY
-            if use_shortcut {
+            let adj: Vec<&usize> = self.adj[&id].iter().collect();
+            let adj_slice = if only_first_adj { &adj[..=0] } else { &adj };
+
+            for n in adj_slice {
                 let next = SearchState {
                     length: length + 1,
-                    id: self.adj[&id][0],
-                };
-
-                if next.length < dist[next.id] {
-                    heap.push(next);
-                    dist[next.id] = next.length;
-                }
-
-                continue;
-            }
-
-            // TODO: DRY
-            for n in &self.adj[&id] {
-                let next = SearchState {
-                    length: length + 1,
-                    id: *n,
+                    id: **n,
                 };
 
                 if next.length < dist[next.id] {
@@ -122,6 +105,9 @@ impl System {
         None
     }
 
+    ///
+    /// [o1]: the primary body
+    /// [o2]: the orbiter
     fn add_orbiter(&mut self, o1: &str, o2: &str) {
         if self.nodes.insert(o1.to_string()) {
             // Assign an ID
@@ -133,15 +119,17 @@ impl System {
             self.node_ids.insert(o2.to_string(), self.node_ids.len());
         }
 
+        // Add to back of adj so the first element stays the thing o2 is orbiting
         self.adj
             .entry(*self.node_ids.get(o1).unwrap())
-            .or_insert_with(Vec::new)
-            .push(*self.node_ids.get(o2).unwrap());
+            .or_insert_with(VecDeque::new)
+            .push_back(*self.node_ids.get(o2).unwrap());
 
+        // Add to front of adj so the first element is the thing o2 is orbiting
         self.adj
             .entry(*self.node_ids.get(o2).unwrap())
-            .or_insert_with(Vec::new)
-            .push(*self.node_ids.get(o1).unwrap());
+            .or_insert_with(VecDeque::new)
+            .push_front(*self.node_ids.get(o1).unwrap());
     }
 }
 
@@ -164,6 +152,21 @@ impl PartialOrd for SearchState {
 fn part_1_example() {
     let ex = [
         "COM)B", "B)C", "C)D", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L",
+    ];
+
+    let mut system = System::new();
+
+    system.parse_orbits(&ex);
+
+    assert_eq!(system.depth("D").unwrap(), 3);
+    assert_eq!(system.depth("L").unwrap(), 7);
+    assert_eq!(system.total_orbits(), 42);
+}
+
+#[test]
+fn part_1_test2() {
+    let ex = [
+        "COM)B", "B)C", "D)E", "E)F", "B)G", "G)H", "D)I", "E)J", "J)K", "K)L", "C)D",
     ];
 
     let mut system = System::new();
